@@ -7,10 +7,10 @@ along with required components.
 
 # REQUIRED COMPONENTS
 
-* Arduino
-* Ultrasonic Sensor
-* Gear motor
+* Arduino nano
+* Stepper Motor
+* A3967(stepper motor driver)
 * Ir sensors
 * Servo
-* Rfid module
+* PN532 v3 rfid module
 * Rfid tags
