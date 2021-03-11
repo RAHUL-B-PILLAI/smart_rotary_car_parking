@@ -1,126 +1,133 @@
-int slota,slotb,slotc=0;
-float dis, dur;
-float ultrasonic;
-#define vcc 5
-#define gnd 8
-#define trig 6
-#define echo 7
-void setup() {
-  // put your setup code here, to run once:
-Serial.begin(9600);
+#include <Wire.h>
+#include <PN532_I2C.h>
+#include <PN532.h>
+#include <NfcAdapter.h>
+#include <AccelStepper.h>
 
-pinMode(trig,OUTPUT);
-pinMode(echo, INPUT);
-pinMode(vcc,OUTPUT);
-pinMode(gnd,OUTPUT);
+// Define a stepper and the pins it will use
+AccelStepper stepper(AccelStepper::DRIVER,4, 3); //dir 3,step 4
 
-digitalWrite(vcc,HIGH);
-digitalWrite(gnd,LOW);
+int slot;
+int enable=7;
+int park[]={1,1,1};
+int currentslot;
+PN532_I2C pn532_i2c(Wire);
+NfcAdapter nfc = NfcAdapter(pn532_i2c);
 
+/* Uno's A4 to SDA & A5 to SCL */
+
+void setup(void) {
+  //pinMode(2,INPUT);
+  pinMode(enable,OUTPUT);
+  //pinMode(ms1,OUTPUT);
+ // pinMode(ms2,OUTPUT);
+    Serial.begin(9600);
+  pinMode(enable,OUTPUT);
+  stepper.setMaxSpeed(3000);
+  stepper.setAcceleration(100);
+  digitalWrite(enable,HIGH);
+    nfc.begin();
+  //attachInterrupt(0, blink, RISING);
 }
 
-void loop() {
-  // put your main code here, to run repeatedly:
-Serial.println("Available slots");
-Serial.print("Slot A:");
-Serial.println(slota);
-Serial.print("Slot B:");
-Serial.println(slotb);
-Serial.print("Slot C:");
-Serial.println(slotc);
-Serial.println("Enter current slot");  
-    while (Serial.available() == 0)   
-    { //Wait for user input  
-      }
-int currentslot=Serial.readString().toInt();  
-Serial.println("Enter required slot");
-while (Serial.available() == 0)   
-    { //Wait for user input  
-    }
-
-long int slot= Serial.readString().toInt();
-reader(currentslot,slot);
-
-delay(1000);
-
-}
-
-void reader(int currentslot,int slot){
+void loop(void) {
   
-  if(currentslot<slot){
+Serial.println("\nScan a NFC tag\n");
+
+    if (nfc.tagPresent())
+
+    {   
+
+    Serial.println("NFC tag Found!\n");
+    NfcTag tag = nfc.read();
     
-    for(int i=currentslot;i<slot;i++){
+    String uid;
+    Serial.print("UI: ");
+    uid=tag.getUidString();
+    Serial.println(tag.getUidString());
+          
+    if(uid=="F3 9A D8 18"){      
+    Serial.println("slot1");
+    slot=1;
+      }
       
-      int motor=1;
-      Serial.println("motor is running");
-      delay(200);
-      int enter=0;
-      while(ultrasonic>3){
-       
-       ultrasonic=sonic();
-        Serial.println(ultrasonic);
-        enter=1;
+    else if(uid=="73 32 D5 18"){
+      Serial.println("slot2");
+      slot=2;
       }
-    ultrasonic=sonic();
-    Serial.println(ultrasonic);
-    Serial.println(enter);
-    motor=0;
-    delay(10+00);
-    motor=0;
-    Serial.println("motor is off");   
-    }
-  }
-  else if(currentslot>slot){
-    int j=3-slot;
-    for(int i=0;i<j;i++){
-int motor=1;
-      Serial.println("motor is running");
-      delay(200);
-      int enter=0;
-      while(ultrasonic>3){
-       
-       ultrasonic=sonic();
-        Serial.println(ultrasonic);
-        enter=1;
+      
+    else if(uid=="73 8E DB 18"){
+      Serial.println("slot3");
+      slot=3;
       }
-    ultrasonic=sonic();
-    Serial.println(ultrasonic);
-    Serial.println(enter);
-    delay(1000);
-    motor=0;
-    Serial.println("motor is off");
-    }
-  
-  }
+   
+      
+    else if(uid=="D3 B3 DE 18"){
+      Serial.println("slot4");
+      slot=4;
+      }
+      
+    else if(uid=="13 1C BF 18"){
+      Serial.println("slot5");
+      slot=5;
+      }
+    
+    else{
+      Serial.println("no slot");
+      slot=0;
+      }
+    } 
+//UID 1C B4 E9 21 slot1, UID 55 51 14 2A slot2, F3 9A D8 18 slot3,73 32 D5 18 slot4, 73 8E DB 18 slot5, D3 B3 DE 18 slot6, 13 1C BF 18 slot7
+  currentslot=slot;
+  Serial.println(park[currentslot-1]);
+  Serial.println(slot);
+  rotate(slot);
+  Serial.println("task complete");
+  delay(2000);
+
 }
 
 
-
-long sonic(){
- dur=0;
-
-digitalWrite(trig,LOW);
-
-delayMicroseconds(2);
-
-digitalWrite(trig,HIGH);
-
-delayMicroseconds(10);
-
-digitalWrite(trig, LOW);
-
-dur = pulseIn(echo,HIGH);
-
-//distance divde by 2 * speed of sound in millisecond
-dis =(dur/2)*0.0343;
-
-Serial.print("distance= ");
-if (dis>400 || dis <2)
-{
-  Serial.println("out of range");
-  }
-else {
-  Serial.print(dis);
-  Serial.println("cm");}
-return dis;
+int rotate(int slot){
+  digitalWrite(enable,LOW);
+  int pos;  
+    if(slot==1){
+            pos=0;
+              stepper.moveTo(pos);
+              while(stepper.distanceToGo() != 0)
+              {            
+                    stepper.run();
+                   }
+  Serial.println("Reached slot1");
+  } 
+    else if(slot==2){
+            pos=-5000;
+              stepper.moveTo(pos);
+              while(stepper.distanceToGo() != 0)
+              {            
+                    stepper.run();
+                   }
+  Serial.println("Reached slot2");
+  } 
+  else if(slot==3){       
+            pos=-10000;
+              stepper.moveTo(pos);
+              while(stepper.distanceToGo() != 0)
+              {            
+                    stepper.run();
+                   }
+  Serial.println("Reached slot3");
+      }  
+    else
+    {Serial.println("enter correct slot");
+      }
+ digitalWrite(enable,HIGH);
+ slot=0;
 }
+
+void blink(){
+  park[currentslot-1]=!park[currentslot-1];
+  Serial.println("interrupt recieved");
+  }
+ 
+
